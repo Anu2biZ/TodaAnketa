@@ -142,16 +142,64 @@ async function handleSubmit() {
   }
 
   try {
-    // Здесь можно добавить отправку данных на сервер
-    console.log('Form submitted:', formData.value)
-    showNotification('Form submitted successfully!')
+    // Подготавливаем данные для отправки
+    const flatData = {
+      website: formData.value.step1.website,
+      contact: formData.value.step1.contact,
+      brief: formData.value.step1.brief,
+      license: formData.value.step1.license,
+      project_exist: formData.value.step1.projectExist,
+      geo: formData.value.step2.geo,
+      volume_1m: formData.value.step2.volume1m,
+      volume_2m: formData.value.step2.volume2m,
+      volume_3m: formData.value.step2.volume3m,
+      currency: formData.value.step2.currency,
+      avg_transaction: formData.value.step2.avgTransaction,
+      chargeback_rate: formData.value.step2.chargebackRate,
+      refund_rate: formData.value.step2.refundRate,
+      processing_history: formData.value.step3.processingHistory,
+      traffic_type: formData.value.step3.trafficType,
+      card_payouts: formData.value.step3.cardPayouts,
+      integration_platform: formData.value.step3.integrationPlatform
+    }
+
+    // ВАЖНО: Используем URLSearchParams для отправки данных как form-data
+    // Это более надежно при работе с Apps Script
+    const formBody = new URLSearchParams();
+    for (const key in flatData) {
+      formBody.append(key, flatData[key] || '');
+    }
+
+    // Для отладки - запускаем индикатор загрузки
+    const isLoading = ref(true);
     
-    // Сброс формы и редирект на главную через 2 секунды
-    setTimeout(() => {
-      resetForm()
-      router.push('/')
-    }, 2000)
+    // Отправляем данные в Google Sheets через Apps Script
+    const response = await fetch('https://script.google.com/macros/s/AKfycbxsAQW2xi0TV_ni-teW-r69l06f33nto5jx0NRUVFWeE6iBnRtqcNdc98pCplONphry/exec', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: formBody
+    })
+    
+    isLoading.value = false;
+    
+    if (response.ok) {
+      showNotification('Form submitted successfully!')
+      
+      // Сброс формы и редирект на главную через 2 секунды
+      setTimeout(() => {
+        resetForm()
+        router.push('/')
+      }, 2000)
+    } else {
+      // Если ответ не ok, показываем ошибку
+      const responseText = await response.text();
+      console.error('Server error:', responseText);
+      showNotification('Server error: ' + (responseText || response.statusText), 'error');
+    }
   } catch (error) {
+    console.error('Submission error:', error)
     showNotification('An error occurred while submitting the form', 'error')
   }
 }
