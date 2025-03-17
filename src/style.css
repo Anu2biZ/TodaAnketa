@@ -1,0 +1,59 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Raleway:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-toda-bg text-white font-inter overflow-x-hidden;
+  }
+}
+
+@layer components {
+  .glass-card {
+    @apply bg-[#252936] backdrop-blur-xl rounded-[32px] border border-white/20;
+    box-shadow: 0 0px 15px 0 rgba(255, 128, 0, 0.2);
+  }
+
+  .animated-gradient {
+    background: linear-gradient(
+      135deg,
+      #DA2363 0%,
+      #F83E5F 50%,
+      #FF7C68 100%
+    );
+    background-size: 300% 300%;
+    animation: gradient 8s ease infinite;
+  }
+
+  .gradient-overlay {
+    position: relative;
+  }
+
+  .gradient-overlay::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      135deg,
+      #DA2363 0%,
+      #F83E5F 50%,
+      #FF7C68 100%
+    );
+    opacity: 0.1;
+    pointer-events: none;
+  }
+}
+
+@keyframes gradient {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
