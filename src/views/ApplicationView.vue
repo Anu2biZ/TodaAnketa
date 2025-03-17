@@ -174,7 +174,7 @@ async function handleSubmit() {
     const isLoading = ref(true);
     
     // Отправляем данные в Google Sheets через Apps Script
-    const response = await fetch('https://script.google.com/macros/s/AKfycbxsAQW2xi0TV_ni-teW-r69l06f33nto5jx0NRUVFWeE6iBnRtqcNdc98pCplONphry/exec', {
+    const response = await fetch('https://script.google.com/macros/s/AKfycbyAnUPlktMK2PdAoqd8oHk9ZSsyz3D3EeDLuiqe9RGhqyQgfufAMoKoawdly2rg4ysS/exec', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
