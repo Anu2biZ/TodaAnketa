@@ -436,12 +436,14 @@ import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import { useOnboardingFormStore } from '../stores/onboardingForm'
+import { useSalesManagersStore } from '../stores/salesManagers'
 import ToastNotification from '../components/ToastNotification.vue'
 import DepartmentToggler from '../components/DepartmentToggler.vue'
 import FileUploader from '../components/FileUploader.vue'
 
 const router = useRouter()
 const store = useOnboardingFormStore()
+const salesStore = useSalesManagersStore()
 
 // Reactive values from store
 const { currentStep, formData, isLastStep, isFirstStep } = storeToRefs(store)
@@ -560,22 +562,151 @@ function getDocumentTitle(key) {
 // Handle form submission
 async function handleSubmit() {
   if (!validateForm()) {
-    showNotification('Please fill in all required fields', 'error')
+    showNotification('Пожалуйста, заполните все обязательные поля', 'error')
     return
   }
 
   try {
-    // In real application there would be an API request here
-    showNotification('Form submitted successfully!')
+    const isLoading = ref(true)
+
+    // Подготавливаем данные департаментов
+    const departmentData = {}
+    for (const [name, dept] of Object.entries(formData.value.step1.departments)) {
+      if (dept.enabled) {
+        departmentData[`${name}_full_name`] = dept.fullName
+        departmentData[`${name}_position`] = dept.position
+        departmentData[`${name}_telegram`] = dept.telegram
+        departmentData[`${name}_email`] = dept.email
+      } else {
+        departmentData[`${name}_full_name`] = 'NO'
+        departmentData[`${name}_position`] = 'NO'
+        departmentData[`${name}_telegram`] = 'NO'
+        departmentData[`${name}_email`] = 'NO'
+      }
+    }
+
+    // Подготавливаем данные для отправки
+    const flatData = {
+      sale_name: salesStore.currentSaleName || 'No sale ID',
+      project_name: formData.value.step1.projectName,
+      telegram_group: formData.value.step1.telegramGroup,
+      ...departmentData,
+      comments: formData.value.step1.comments || 'NO',
+      company_name: formData.value.step2.companyName,
+      legal_address: formData.value.step2.legalAddress,
+      registration_date: formData.value.step2.registrationDate,
+      registration_number: formData.value.step2.registrationNumber,
+      license_jurisdiction: formData.value.step2.licenseJurisdiction || 'NO',
+      license_number: formData.value.step2.licenseNumber || 'NO',
+      project_nature: formData.value.step2.projectNature === 'Others' 
+        ? formData.value.step2.projectNatureOther 
+        : formData.value.step2.projectNature,
+      industries: formData.value.step2.industries || 'NO',
+      not_belongs_to_psp: formData.value.step2.notBelongToCategory,
+      website: formData.value.step2.website || 'NO',
+      ubo_country_citizenship: formData.value.step3.uboCountryCitizenship,
+      ubo_country_residence: formData.value.step3.uboCountryResidence,
+      director_country_citizenship: formData.value.step3.directorCountryCitizenship,
+      director_country_residence: formData.value.step3.directorCountryResidence,
+      shareholder_country_citizenship: formData.value.step3.shareholderCountryCitizenship,
+      shareholder_country_residence: formData.value.step3.shareholderCountryResidence,
+      urls: formData.value.step4.urls,
+      processing_history: formData.value.step4.processingHistory.hasHistory ? 'NO' : 'UPLOADING',
+      chargeback_statistics: formData.value.step4.chargebackStatistics.hasStatistics ? 'NO' : 'UPLOADING',
+      form_type: 'onboarding' // Маркер для Apps Script
+    }
+
+    // Добавляем статусы документов
+    for (const [key, doc] of Object.entries(formData.value.step5.documents)) {
+      flatData[key] = doc.noDocument ? 'NO' : 'UPLOADING'
+    }
+
+    // Создаем FormData для отправки
+    const formBody = new URLSearchParams()
+    for (const [key, value] of Object.entries(flatData)) {
+      formBody.append(key, value.toString())
+    }
+
+    // Отправляем данные в Google Sheets
+    const response = await fetch(import.meta.env.VITE_GOOGLE_SCRIPT_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: formBody
+    })
+
+    if (!response.ok) {
+      throw new Error(await response.text())
+    }
+
+    const result = await response.json()
     
-    // Reset form and redirect to home after 2 seconds
+    // Загружаем файлы в Google Drive
+    const uploadTasks = []
+
+    // Загрузка файлов истории
+    if (!formData.value.step4.processingHistory.hasHistory && formData.value.step4.processingHistory.file.length > 0) {
+      uploadTasks.push(...formData.value.step4.processingHistory.file.map((file, index) => 
+        uploadFileToDrive(file, 'PROCESSING_HISTORY', index + 1, result.folderId)
+      ))
+    }
+
+    // Загрузка файлов статистики
+    if (!formData.value.step4.chargebackStatistics.hasStatistics && formData.value.step4.chargebackStatistics.file.length > 0) {
+      uploadTasks.push(...formData.value.step4.chargebackStatistics.file.map((file, index) => 
+        uploadFileToDrive(file, 'CHARGEBACK_STATISTICS', index + 1, result.folderId)
+      ))
+    }
+
+    // Загрузка документов
+    for (const [key, doc] of Object.entries(formData.value.step5.documents)) {
+      if (!doc.noDocument && doc.files.length > 0) {
+        uploadTasks.push(...doc.files.map((file, index) => 
+          uploadFileToDrive(file, key.toUpperCase(), index + 1, result.folderId)
+        ))
+      }
+    }
+
+    // Ждем завершения всех загрузок
+    await Promise.all(uploadTasks)
+
+    isLoading.value = false
+    showNotification('Форма успешно отправлена!')
+    
+    // Сброс формы и редирект на главную через 2 секунды
     setTimeout(() => {
       resetForm()
       router.push('/')
     }, 2000)
   } catch (error) {
-    console.error('Submission error:', error)
-    showNotification('An error occurred while submitting the form', 'error')
+    console.error('Ошибка отправки:', error)
+    showNotification('Произошла ошибка при отправке формы: ' + error.message, 'error')
+  }
+}
+
+// Функция для загрузки файла в Google Drive
+async function uploadFileToDrive(file, type, index, folderId) {
+  try {
+    const formData = new FormData()
+    formData.append('file', file)
+    formData.append('type', type)
+    formData.append('index', index)
+    formData.append('folderId', folderId)
+
+    const response = await fetch(import.meta.env.VITE_GOOGLE_SCRIPT_URL, {
+      method: 'POST',
+      body: formData
+    })
+
+    if (!response.ok) {
+      throw new Error(`Ошибка загрузки файла ${file.name}`)
+    }
+
+    return await response.json()
+  } catch (error) {
+    console.error(`Ошибка загрузки файла ${file.name}:`, error)
+    throw error
   }
 }
 </script>
