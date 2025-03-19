@@ -100,10 +100,12 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import { useApplicationFormStore } from '../stores/applicationForm'
+import { useSalesManagersStore } from '../stores/salesManagers'
 import ToastNotification from '../components/ToastNotification.vue'
 
 const router = useRouter()
 const store = useApplicationFormStore()
+const salesStore = useSalesManagersStore()
 
 // Реактивные значения из store
 const { currentStep, formData, isLastStep, isFirstStep } = storeToRefs(store)
@@ -160,7 +162,8 @@ async function handleSubmit() {
       processing_history: formData.value.step3.processingHistory,
       traffic_type: formData.value.step3.trafficType,
       card_payouts: formData.value.step3.cardPayouts,
-      integration_platform: formData.value.step3.integrationPlatform
+      integration_platform: formData.value.step3.integrationPlatform,
+      sale_name: salesStore.currentSaleName || 'No sale ID',
     }
 
     // ВАЖНО: Используем URLSearchParams для отправки данных как form-data
@@ -174,7 +177,7 @@ async function handleSubmit() {
     const isLoading = ref(true);
     
     // Отправляем данные в Google Sheets через Apps Script
-    const response = await fetch('https://script.google.com/macros/s/AKfycbyAnUPlktMK2PdAoqd8oHk9ZSsyz3D3EeDLuiqe9RGhqyQgfufAMoKoawdly2rg4ysS/exec', {
+    const response = await fetch('https://script.google.com/macros/s/AKfycbzCaDCFxpkmEkJYKOvF_xrGa4ZB-MCmsSzfPftcu06P2QOB74neo27KVGkzpRcdU0g8/exec', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',

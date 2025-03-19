@@ -1,6 +1,22 @@
+<script setup>
+import { onMounted } from 'vue'
+import { useRoute } from 'vue-router'
+import { useSalesManagersStore } from '../stores/salesManagers'
+
+const route = useRoute()
+const salesStore = useSalesManagersStore()
+
+onMounted(() => {
+  // Проверяем GET параметр id
+  const saleId = route.query.id
+  if (saleId) {
+    salesStore.setSaleId(saleId)
+  }
+})
+</script>
+
 <template>
     <div class="min-h-screen relative overflow-hidden">
-
         <main class="relative mt-10 max-w-[900px] mx-auto px-4 py-8">
             <!-- Logo -->
             <div class="text-center mb-12 flex justify-center">
@@ -52,8 +68,6 @@
                 SMART PAYMENTS TECHNOLOGIES LTD (MSB registration number: M20438511), a company incorporated and registered in the Province of British Columbia, Canada under company registration number BC1266435, the registered office of which is at 170-6660 GRAYBAR ROAD, 2ND FLOOR, OFFICE # 8T RICHMOND, BC, CANADA V6W1H9
               </p>
                 <p class="mt-4 text-xs">&copy; {{ new Date().getFullYear() }} Toda Payments. All rights reserved.</p>
-
-
             </footer>
         </main>
     </div>
