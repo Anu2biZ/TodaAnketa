@@ -685,6 +685,18 @@ async function handleSubmit() {
   }
 }
 
+// Функция для разбиения файла на чанки
+function* getFileChunks(file, chunkSize = 256 * 1024) { // 256KB chunks
+  const fileSize = file.size
+  let offset = 0
+  
+  while (offset < fileSize) {
+    const chunk = file.slice(offset, offset + chunkSize)
+    offset += chunkSize
+    yield chunk
+  }
+}
+
 // Функция для загрузки файла в Google Drive
 async function uploadFileToDrive(file, type, index, folderId) {
   try {
@@ -700,45 +712,66 @@ async function uploadFileToDrive(file, type, index, folderId) {
       throw new Error('Некорректный формат файла')
     }
 
-    // Конвертируем файл в base64
-    const base64File = await new Promise((resolve, reject) => {
-      const reader = new FileReader()
-      reader.onload = () => {
-        // Получаем base64 строку, убирая prefix (data:application/pdf;base64,)
-        const base64 = reader.result.split(',')[1]
-        resolve(base64)
+    // Получаем чанки файла
+    const chunks = Array.from(getFileChunks(file.file))
+    console.log(`Файл разбит на ${chunks.length} чанков`)
+
+    // Загружаем чанки последовательно
+    for (let i = 0; i < chunks.length; i++) {
+      const chunk = chunks[i]
+      
+      // Конвертируем чанк в base64
+      const base64Chunk = await new Promise((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onload = () => {
+          const base64 = reader.result.split(',')[1]
+          resolve(base64)
+        }
+        reader.onerror = (error) => {
+          console.error('Ошибка чтения чанка:', error)
+          reject(error)
+        }
+        reader.readAsDataURL(chunk)
+      })
+
+      console.log(`Чанк ${i + 1}/${chunks.length} конвертирован в base64`)
+
+      // Добавляем задержку между загрузками чанков
+      if (i > 0) {
+        await new Promise(resolve => setTimeout(resolve, 1000))
       }
-      reader.onerror = (error) => {
-        console.error('Ошибка чтения файла:', error)
-        reject(error)
+
+      const formData = new URLSearchParams()
+      formData.append('form_type', 'file_upload')
+      formData.append('file', base64Chunk)
+      formData.append('type', type)
+      formData.append('index', index)
+      formData.append('chunk_index', i)
+      formData.append('total_chunks', chunks.length)
+      formData.append('folderId', folderId)
+      formData.append('filename', file.file.name)
+      formData.append('contentType', file.file.type)
+
+      const response = await fetch(import.meta.env.VITE_GOOGLE_SCRIPT_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: formData
+      })
+
+      if (!response.ok) {
+        throw new Error(`Ошибка загрузки чанка ${i + 1} файла ${file.name}`)
       }
-      reader.readAsDataURL(file.file)
-    })
 
-    console.log('Файл успешно конвертирован в base64')
+      const result = await response.json()
+      console.log(`Чанк ${i + 1}/${chunks.length} успешно загружен`)
 
-    const formData = new URLSearchParams()
-    formData.append('form_type', 'file_upload')
-    formData.append('file', base64File)
-    formData.append('type', type)
-    formData.append('index', index)
-    formData.append('folderId', folderId)
-    formData.append('filename', file.file.name)
-    formData.append('contentType', file.file.type)
-
-    const response = await fetch(import.meta.env.VITE_GOOGLE_SCRIPT_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: formData
-    })
-
-    if (!response.ok) {
-      throw new Error(`Ошибка загрузки файла ${file.name}`)
+      // Если это последний чанк, возвращаем результат
+      if (i === chunks.length - 1) {
+        return result
+      }
     }
-
-    return await response.json()
   } catch (error) {
     console.error(`Ошибка загрузки файла ${file.name}:`, error)
     throw error

@@ -262,17 +262,37 @@ function doGet(e) {
 
 // Обработчик POST-запросов
 function doPost(e) {
-  addLog(' НАЧАЛО ОБРАБОТКИ POST ЗАПРОСА ');
+  addLog('=================== НАЧАЛО ОБРАБОТКИ POST ЗАПРОСА ===================');
   addLog('Время начала: ' + new Date().toISOString());
   
   let lock = null;
   const properties = PropertiesService.getScriptProperties().getProperties();
   
+  // Функция для получения блокировки с повторными попытками
+  const acquireLock = () => {
+    const maxAttempts = 3;
+    const waitTime = 10000; // 10 секунд между попытками
+    
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      try {
+        addLog(`Попытка получения блокировки ${attempt}/${maxAttempts}...`);
+        lock = LockService.getScriptLock();
+        lock.waitLock(60000); // Увеличиваем тайм-аут до 60 секунд
+        addLog('Блокировка получена', 'SUCCESS');
+        return true;
+      } catch (error) {
+        if (attempt === maxAttempts) {
+          addLog(`Не удалось получить блокировку после ${maxAttempts} попыток`, 'ERROR');
+          throw error;
+        }
+        addLog(`Не удалось получить блокировку, попытка ${attempt}. Ожидание ${waitTime/1000} секунд...`, 'WARNING');
+        Utilities.sleep(waitTime);
+      }
+    }
+    return false;
+  };
+  
   try {
-    addLog('Получаем блокировку...');
-    lock = LockService.getScriptLock();
-    lock.waitLock(30000); // Ждем до 30 секунд для получения блокировки
-    addLog('Блокировка получена', 'SUCCESS');
     
     // Получаем параметры запроса
     addLog('Получаем параметры запроса...');
@@ -345,10 +365,22 @@ function doPost(e) {
     let result;
     switch (params.form_type) {
       case 'onboarding':
-        result = handleOnboardingForm(params);
-        addLog('Форма Onboarding успешно обработана', 'SUCCESS');
+        // Для формы onboarding нужна блокировка, так как мы пишем в таблицу
+        if (!acquireLock()) {
+          throw new Error('Не удалось получить блокировку для записи в таблицу');
+        }
+        try {
+          result = handleOnboardingForm(params);
+          addLog('Форма Onboarding успешно обработана', 'SUCCESS');
+        } finally {
+          if (lock && lock.hasLock()) {
+            lock.releaseLock();
+            addLog('Блокировка освобождена', 'SUCCESS');
+          }
+        }
         break;
       case 'file_upload':
+        // Для загрузки файла блокировка не нужна
         result = handleFileUpload(params);
         addLog('Загрузка файла успешно обработана', 'SUCCESS');
         break;
@@ -554,6 +586,9 @@ function sendNotification(params) {
   }
 }
 
+// Кэш для хранения чанков файлов
+const fileChunksCache = {};
+
 // Обработка загрузки файлов
 function handleFileUpload(params) {
   addLog(' НАЧАЛО ЗАГРУЗКИ ФАЙЛА ');
@@ -565,6 +600,8 @@ function handleFileUpload(params) {
     addLog('form_type: ' + params.form_type);
     addLog('type: ' + params.type);
     addLog('index: ' + params.index);
+    addLog('chunk_index: ' + params.chunk_index);
+    addLog('total_chunks: ' + params.total_chunks);
     addLog('folderId: ' + params.folderId);
     addLog('filename: ' + params.filename);
     addLog('contentType: ' + params.contentType);
@@ -589,6 +626,9 @@ function handleFileUpload(params) {
     if (!params.contentType) {
       throw new Error('Тип контента не указан');
     }
+    if (params.chunk_index === undefined || params.total_chunks === undefined) {
+      throw new Error('Не указана информация о чанках');
+    }
 
     addLog('Все необходимые параметры присутствуют', 'SUCCESS');
     
@@ -603,15 +643,48 @@ function handleFileUpload(params) {
       throw new Error('Не удалось получить доступ к папке: ' + folderError.message);
     }
 
+    // Создаем уникальный ключ для файла
+    const fileKey = `${params.folderId}_${params.type}_${params.index}_${params.filename}`;
+    
+    // Проверяем существование кэша для файла
+    if (!fileChunksCache[fileKey]) {
+      fileChunksCache[fileKey] = {
+        chunks: new Array(parseInt(params.total_chunks)),
+        receivedChunks: 0
+      };
+      addLog(`Инициализирован кэш для файла ${fileKey}`, 'SUCCESS');
+    }
+
+    // Сохраняем чанк
+    addLog(`Сохранение чанка ${parseInt(params.chunk_index) + 1}/${params.total_chunks}`);
+    const chunkIndex = parseInt(params.chunk_index);
+    fileChunksCache[fileKey].chunks[chunkIndex] = params.file;
+    fileChunksCache[fileKey].receivedChunks++;
+
+    addLog(`Текущий статус: получено ${fileChunksCache[fileKey].receivedChunks} из ${params.total_chunks} чанков`);
+
+    // Если это не последний чанк, возвращаем промежуточный результат
+    if (fileChunksCache[fileKey].receivedChunks < params.total_chunks) {
+      addLog(`Получено ${fileChunksCache[fileKey].receivedChunks} из ${params.total_chunks} чанков`, 'SUCCESS');
+      return ContentService.createTextOutput(JSON.stringify({
+        status: 'chunk_received',
+        message: `Chunk ${params.chunk_index + 1}/${params.total_chunks} received`
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    // Если получены все чанки, собираем файл
+    addLog('Получены все чанки, собираем файл...');
+    const completeBase64 = fileChunksCache[fileKey].chunks.join('');
+    delete fileChunksCache[fileKey]; // Очищаем кэш
+
     // Создаем файл
-    addLog('Создаем файл...');
     const fileName = `${params.type}_${params.index || 1}${getFileExtension(params.filename)}`;
     addLog('Имя файла: ' + fileName);
 
     try {
       // Декодируем base64
       addLog('Декодируем base64...');
-      const decodedData = Utilities.base64Decode(params.file);
+      const decodedData = Utilities.base64Decode(completeBase64);
       addLog('Данные декодированы, размер: ' + decodedData.length, 'SUCCESS');
 
       // Создаем blob
@@ -763,23 +836,55 @@ function testFileUpload() {
     const testFolder = folder.createFolder('test_upload_' + new Date().getTime());
     addLog('Тестовая подпапка создана: ' + testFolder.getName(), 'SUCCESS');
     
-    // Параметры для загрузки
-    const params = {
-      form_type: 'file_upload',
-      folderId: testFolder.getId(), // Используем ID тестовой подпапки
-      type: 'TEST',
-      filename: 'test.txt',
-      contentType: 'text/plain',
-      file: base64Data,
-      index: 1
-    };
-    
-    addLog('Параметры для загрузки: ' + JSON.stringify(params, null, 2));
-    
-    // Пробуем загрузить файл
-    addLog('Загружаем файл...');
-    const result = handleFileUpload(params);
-    const response = JSON.parse(result.getContent());
+    // Имитируем разбиение файла на чанки
+    const chunkSize = 256 * 1024; // 256KB
+    const totalChunks = Math.ceil(base64Data.length / chunkSize);
+    addLog(`Разбиваем файл на ${totalChunks} чанков по ${chunkSize} байт`);
+
+    // Загружаем чанки последовательно
+    let finalResult;
+    for (let i = 0; i < totalChunks; i++) {
+      const start = i * chunkSize;
+      const end = Math.min(start + chunkSize, base64Data.length);
+      const chunk = base64Data.substring(start, end);
+      
+      // Параметры для загрузки чанка
+      const params = {
+        form_type: 'file_upload',
+        folderId: testFolder.getId(),
+        type: 'TEST',
+        filename: 'test.txt',
+        contentType: 'text/plain',
+        file: chunk,
+        index: 1,
+        chunk_index: i,
+        total_chunks: totalChunks
+      };
+      
+      addLog(`Загрузка чанка ${i + 1}/${totalChunks}...`);
+      addLog('Параметры чанка: ' + JSON.stringify(params, null, 2));
+      
+      // Загружаем чанк
+      const result = handleFileUpload(params);
+      const response = JSON.parse(result.getContent());
+      
+      if (response.status === 'error') {
+        throw new Error(`Ошибка загрузки чанка ${i + 1}: ${response.message}`);
+      }
+      
+      addLog(`Чанк ${i + 1}/${totalChunks} загружен успешно`, 'SUCCESS');
+      
+      // Если это последний чанк, сохраняем результат
+      if (i === totalChunks - 1) {
+        finalResult = result;
+      } else {
+        // Делаем паузу между загрузками чанков
+        Utilities.sleep(1000);
+      }
+    }
+
+    // Проверяем результат загрузки всех чанков
+    const response = JSON.parse(finalResult.getContent());
     addLog('Ответ от handleFileUpload: ' + JSON.stringify(response, null, 2), 
       response.status === 'success' ? 'SUCCESS' : 'ERROR');
     
