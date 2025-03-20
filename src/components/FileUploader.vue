@@ -87,7 +87,7 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue'
+import { ref, watch, onBeforeUnmount } from 'vue'
 
 const props = defineProps({
   modelValue: {
@@ -165,12 +165,12 @@ function addFiles(files) {
   
   const newFiles = [...props.modelValue]
   files.forEach(file => {
-    // Имитация загрузки - в реальном приложении здесь был бы API запрос
+    // Сохраняем оригинальный файл для последующей загрузки
     newFiles.push({
       name: file.name,
       size: file.size,
       type: file.type,
-      // В реальном приложении здесь был бы response.url или что-то подобное
+      file: file, // Сохраняем оригинальный файл
       url: URL.createObjectURL(file)
     })
   })
@@ -180,7 +180,20 @@ function addFiles(files) {
 
 function removeFile(index) {
   const newFiles = [...props.modelValue]
+  // Освобождаем URL перед удалением файла
+  if (newFiles[index].url) {
+    URL.revokeObjectURL(newFiles[index].url)
+  }
   newFiles.splice(index, 1)
   emit('update:modelValue', newFiles)
 }
+
+// Очистка URL при размонтировании компонента
+onBeforeUnmount(() => {
+  props.modelValue.forEach(file => {
+    if (file.url) {
+      URL.revokeObjectURL(file.url)
+    }
+  })
+})
 </script>

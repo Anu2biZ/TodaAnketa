@@ -688,14 +688,49 @@ async function handleSubmit() {
 // Функция для загрузки файла в Google Drive
 async function uploadFileToDrive(file, type, index, folderId) {
   try {
-    const formData = new FormData()
-    formData.append('file', file)
+    console.log('Загрузка файла:', {
+      name: file.name,
+      type: file.type,
+      size: file.size,
+      hasFile: !!file.file,
+      isBlob: file.file instanceof Blob
+    })
+
+    if (!file.file || !(file.file instanceof Blob)) {
+      throw new Error('Некорректный формат файла')
+    }
+
+    // Конвертируем файл в base64
+    const base64File = await new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onload = () => {
+        // Получаем base64 строку, убирая prefix (data:application/pdf;base64,)
+        const base64 = reader.result.split(',')[1]
+        resolve(base64)
+      }
+      reader.onerror = (error) => {
+        console.error('Ошибка чтения файла:', error)
+        reject(error)
+      }
+      reader.readAsDataURL(file.file)
+    })
+
+    console.log('Файл успешно конвертирован в base64')
+
+    const formData = new URLSearchParams()
+    formData.append('form_type', 'file_upload')
+    formData.append('file', base64File)
     formData.append('type', type)
     formData.append('index', index)
     formData.append('folderId', folderId)
+    formData.append('filename', file.file.name)
+    formData.append('contentType', file.file.type)
 
     const response = await fetch(import.meta.env.VITE_GOOGLE_SCRIPT_URL, {
       method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
       body: formData
     })
 

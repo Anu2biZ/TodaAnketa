@@ -5,15 +5,15 @@ export const useOnboardingFormStore = defineStore('onboardingForm', () => {
   const currentStep = ref(0)
   const formData = ref({
     step1: {
-      projectName: '',
-      telegramGroup: '',
+      projectName: 'test name',
+      telegramGroup: 'test tg',
       departments: {
         compliance: {
-          enabled: false,
-          fullName: '',
-          position: '',
-          telegram: '',
-          email: ''
+          enabled: true,
+          fullName: 'test name',
+          position: 'test position',
+          telegram: 'test tg',
+          email: 'testemail@ya.ru'
         },
         legal: {
           enabled: false,
@@ -47,34 +47,34 @@ export const useOnboardingFormStore = defineStore('onboardingForm', () => {
       comments: ''
     },
     step2: {
-      companyName: '',
-      legalAddress: '',
-      registrationDate: '',
-      registrationNumber: '',
-      licenseJurisdiction: '',
-      licenseNumber: '',
-      projectNature: '',
+      companyName: 'company name',
+      legalAddress: 'legal address',
+      registrationDate: '12.12.2024',
+      registrationNumber: 'reg no',
+      licenseJurisdiction: 'licenseJurisdiction',
+      licenseNumber: 'licenseNumber',
+      projectNature: 'PSP',
       projectNatureOther: '',
-      industries: '',
+      industries: 'hz',
       notBelongToCategory: false,
-      website: ''
+      website: 'https://vk.com'
     },
     step3: {
-      uboCountryCitizenship: '',
-      uboCountryResidence: '',
-      directorCountryCitizenship: '',
-      directorCountryResidence: '',
-      shareholderCountryCitizenship: '',
-      shareholderCountryResidence: ''
+      uboCountryCitizenship: '1',
+      uboCountryResidence: '2',
+      directorCountryCitizenship: '3',
+      directorCountryResidence: '4',
+      shareholderCountryCitizenship: '5',
+      shareholderCountryResidence: '6'
     },
     step4: {
-      urls: '',
+      urls: '2',
       processingHistory: {
-        hasHistory: false,
+        hasHistory: true,
         file: []
       },
       chargebackStatistics: {
-        hasStatistics: false,
+        hasStatistics: true,
         file: []
       }
     },
