@@ -424,6 +424,7 @@ function handleOnboardingForm(params) {
     // Подготавливаем данные для записи
     addLog('Подготавливаем данные для записи...');
     const rowData = [
+      new Date(), // Дата создания записи (перемещена в начало)
       params.sale_name,
       params.project_name,
       params.telegram_group,
@@ -480,8 +481,7 @@ function handleOnboardingForm(params) {
       params.amlPolicy,
       params.mlroInformation,
       params.kycDocuments,
-      params.legalEntityDocuments,
-      new Date() // Дата создания записи
+      params.legalEntityDocuments
     ];
     addLog('Данные подготовлены', 'SUCCESS');
     
@@ -711,6 +711,117 @@ function handleFileUpload(params) {
       addLog('- Имя: ' + file.getName());
       addLog('- Размер: ' + file.getSize());
       addLog('- URL: ' + file.getUrl());
+
+      // Обновляем ссылку в таблице
+      addLog('Обновляем ссылку в таблице...');
+      const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+      const sheet = ss.getSheetByName('Onboarding');
+      
+      // Ищем строку с нужным проектом
+      const lastRow = sheet.getLastRow();
+      const projectColumn = 3; // Колонка с именем проекта (3-я колонка, т.к. первая - дата, вторая - sale_name)
+      const data = sheet.getRange(1, 1, lastRow, sheet.getLastColumn()).getValues();
+      
+      // Маппинг типов файлов на индексы колонок (нумерация с 1)
+      const columnMapping = {
+        'PROCESSING_HISTORY': 42,
+        'CHARGEBACK_STATISTICS': 43,
+        'INCORPORATION': 44,
+        'INCUMBENCY': 45,
+        'ARTICLES': 46,
+        'OWNERSHIPCHART': 47,
+        'BOARDOFDIRECTORS': 48,
+        'SHAREHOLDERREGISTER': 49,
+        'OPERATINGLICENSE': 50,
+        'AMLPOLICY': 51,
+        'MLROINFORMATION': 52,
+        'KYCDOCUMENTS': 53,
+        'LEGALENTITYDOCUMENTS': 54
+      };
+
+      // Получаем индекс колонки для данного типа файла
+      const typeIndex = columnMapping[params.type];
+      if (!typeIndex) {
+        addLog(`Индекс колонки для типа ${params.type} не найден`, 'WARNING');
+        return;
+      }
+      addLog(`Найден индекс колонки ${typeIndex} для типа ${params.type}`);
+      
+      // Проверяем, что индекс не выходит за пределы таблицы
+      if (typeIndex > sheet.getLastColumn()) {
+        addLog(`Индекс колонки ${typeIndex} выходит за пределы таблицы`, 'WARNING');
+      } else {
+        // Ищем строку с проектом, начиная с конца (самые новые записи)
+        for (let i = lastRow - 1; i >= 0; i--) {
+          const rowProjectName = data[i][projectColumn - 1];
+          addLog(`Проверяем строку ${i + 1}, проект: "${rowProjectName}" с "${params.project_name}"`);
+          if (rowProjectName === params.project_name) {
+            const currentCell = sheet.getRange(i + 1, typeIndex + 1);
+            const currentValue = currentCell.getValue();
+            
+            // Получаем текущие ссылки или создаем новый массив
+            let links = [];
+            if (currentValue !== 'UPLOADING' && currentValue !== 'NO') {
+              // Получаем текущее rich text value
+              const richTextValue = currentCell.getRichTextValue();
+              if (richTextValue) {
+                // Получаем существующие ссылки из runs
+                const runs = richTextValue.getRuns();
+                runs.forEach(run => {
+                  if (run.getLinkUrl()) {
+                    links.push({
+                      text: run.getText(),
+                      url: run.getLinkUrl()
+                    });
+                  }
+                });
+              }
+            }
+            
+            // Добавляем новую ссылку
+            links.push({
+              text: file.getName(),
+              url: file.getUrl()
+            });
+            
+            // Создаем rich text value с ссылками
+            const richText = SpreadsheetApp.newRichTextValue();
+            let fullText = '';
+            let runs = [];
+            
+            // Добавляем каждую ссылку
+            links.forEach((link, index) => {
+              const startIndex = fullText.length;
+              fullText += link.text;
+              const endIndex = fullText.length;
+              
+              runs.push({
+                startIndex: startIndex,
+                endIndex: endIndex,
+                url: link.url
+              });
+              
+              // Добавляем перенос строки (кроме последней ссылки)
+              if (index < links.length - 1) {
+                fullText += '\n';
+              }
+            });
+            
+            // Устанавливаем базовый текст
+            richText.setText(fullText);
+            
+            // Применяем ссылки
+            runs.forEach(run => {
+              richText.setLinkUrl(run.startIndex, run.endIndex, run.url);
+            });
+            
+            // Устанавливаем значение ячейки
+            currentCell.setRichTextValue(richText.build());
+            addLog(`Ссылка обновлена в ячейке [${i + 1}, ${typeIndex + 1}]`, 'SUCCESS');
+            break;
+          }
+        }
+      }
 
       const response = {
         status: 'success',

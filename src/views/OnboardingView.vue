@@ -751,6 +751,7 @@ async function uploadFileToDrive(file, type, index, folderId) {
       formData.append('folderId', folderId)
       formData.append('filename', file.file.name)
       formData.append('contentType', file.file.type)
+      formData.append('project_name', store.formData.step1.projectName)
 
       const response = await fetch(import.meta.env.VITE_GOOGLE_SCRIPT_URL, {
         method: 'POST',
