@@ -686,7 +686,7 @@ async function handleSubmit() {
 }
 
 // Функция для разбиения файла на чанки
-function* getFileChunks(file, chunkSize = 256 * 1024) { // 256KB chunks
+function* getFileChunks(file, chunkSize = 4 * 1024 * 1024) { // 2MB chunks
   const fileSize = file.size
   let offset = 0
   

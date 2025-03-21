@@ -759,61 +759,21 @@ function handleFileUpload(params) {
             const currentCell = sheet.getRange(i + 1, typeIndex + 1);
             const currentValue = currentCell.getValue();
             
-            // Получаем текущие ссылки или создаем новый массив
-            let links = [];
-            if (currentValue !== 'UPLOADING' && currentValue !== 'NO') {
-              // Получаем текущее rich text value
-              const richTextValue = currentCell.getRichTextValue();
-              if (richTextValue) {
-                // Получаем существующие ссылки из runs
-                const runs = richTextValue.getRuns();
-                runs.forEach(run => {
-                  if (run.getLinkUrl()) {
-                    links.push({
-                      text: run.getText(),
-                      url: run.getLinkUrl()
-                    });
-                  }
-                });
-              }
+            // Получаем все файлы в папке
+            const files = folder.getFiles();
+            let fileCount = 0;
+            while (files.hasNext()) {
+              files.next();
+              fileCount++;
             }
-            
-            // Добавляем новую ссылку
-            links.push({
-              text: file.getName(),
-              url: file.getUrl()
-            });
-            
-            // Создаем rich text value с ссылками
+
+            // Создаем текст с количеством файлов
+            const displayText = 'Файлы загружены';
+
+            // Создаем rich text value со ссылкой на папку
             const richText = SpreadsheetApp.newRichTextValue();
-            let fullText = '';
-            let runs = [];
-            
-            // Добавляем каждую ссылку
-            links.forEach((link, index) => {
-              const startIndex = fullText.length;
-              fullText += link.text;
-              const endIndex = fullText.length;
-              
-              runs.push({
-                startIndex: startIndex,
-                endIndex: endIndex,
-                url: link.url
-              });
-              
-              // Добавляем перенос строки (кроме последней ссылки)
-              if (index < links.length - 1) {
-                fullText += '\n';
-              }
-            });
-            
-            // Устанавливаем базовый текст
-            richText.setText(fullText);
-            
-            // Применяем ссылки
-            runs.forEach(run => {
-              richText.setLinkUrl(run.startIndex, run.endIndex, run.url);
-            });
+            richText.setText(displayText);
+            richText.setLinkUrl(0, displayText.length, folder.getUrl());
             
             // Устанавливаем значение ячейки
             currentCell.setRichTextValue(richText.build());
@@ -948,7 +908,7 @@ function testFileUpload() {
     addLog('Тестовая подпапка создана: ' + testFolder.getName(), 'SUCCESS');
     
     // Имитируем разбиение файла на чанки
-    const chunkSize = 256 * 1024; // 256KB
+    const chunkSize = 4 * 1024 * 1024; // 4 MB
     const totalChunks = Math.ceil(base64Data.length / chunkSize);
     addLog(`Разбиваем файл на ${totalChunks} чанков по ${chunkSize} байт`);
 
