@@ -1,5 +1,48 @@
 <template>
   <div class="min-h-screen relative overflow-hidden">
+    <!-- Upload Progress Overlay -->
+    <div v-if="isUploading" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+      <div class="bg-gray-900 p-8 rounded-lg shadow-xl max-w-lg w-full mx-4">
+        <h3 class="text-xl font-semibold mb-4 text-white">Загрузка файлов</h3>
+        
+        <!-- Overall Progress -->
+        <div class="mb-6">
+          <div class="flex justify-between mb-2">
+            <span class="text-gray-300">Общий прогресс</span>
+            <span class="text-gray-300">{{ uploadProgress.totalFiles - uploadProgress.remainingFiles }}/{{ uploadProgress.totalFiles }}</span>
+          </div>
+          <div class="w-full bg-gray-700 rounded-full h-2.5">
+            <div class="bg-toda-primary h-2.5 rounded-full" 
+                 :style="{ width: `${((uploadProgress.totalFiles - uploadProgress.remainingFiles) / uploadProgress.totalFiles) * 100}%` }">
+            </div>
+          </div>
+        </div>
+
+        <!-- Current File Progress -->
+        <div v-if="uploadProgress.currentFile" class="mb-6">
+          <div class="flex justify-between mb-2">
+            <span class="text-gray-300">{{ uploadProgress.currentFile.name }}</span>
+            <span class="text-gray-300">{{ uploadProgress.currentFile.progress }}%</span>
+          </div>
+          <div class="w-full bg-gray-700 rounded-full h-2.5">
+            <div class="bg-toda-secondary h-2.5 rounded-full" 
+                 :style="{ width: `${uploadProgress.currentFile.progress}%` }">
+            </div>
+          </div>
+        </div>
+
+        <!-- Status Messages -->
+        <div class="text-sm text-gray-400 space-y-1">
+          <div v-for="(message, index) in uploadProgress.messages" :key="index">
+            {{ message }}
+          </div>
+        </div>
+
+        <p class="mt-4 text-sm text-gray-400">
+          Пожалуйста, не закрывайте страницу до завершения загрузки
+        </p>
+      </div>
+    </div>
     <main class="relative mt-10 max-w-[900px] mx-auto px-4 py-8">
       <!-- Logo -->
       <div class="text-center mb-12 flex justify-center">
@@ -445,6 +488,24 @@ const router = useRouter()
 const store = useOnboardingFormStore()
 const salesStore = useSalesManagersStore()
 
+// Upload state
+const isUploading = ref(false)
+const uploadProgress = ref({
+  totalFiles: 0,
+  remainingFiles: 0,
+  currentFile: null,
+  messages: []
+})
+
+// Helper to add progress message
+function addProgressMessage(message) {
+  uploadProgress.value.messages.unshift(`${new Date().toLocaleTimeString()}: ${message}`)
+  // Keep only last 5 messages
+  if (uploadProgress.value.messages.length > 5) {
+    uploadProgress.value.messages.pop()
+  }
+}
+
 // Reactive values from store
 const { currentStep, formData, isLastStep, isFirstStep } = storeToRefs(store)
 // Methods and data from store
@@ -566,9 +627,10 @@ async function handleSubmit() {
     return
   }
 
+  // Показываем оверлей загрузки
+  isUploading.value = true;
+  
   try {
-    const isLoading = ref(true)
-
     // Подготавливаем данные департаментов
     const departmentData = {}
     for (const [name, dept] of Object.entries(formData.value.step1.departments)) {
@@ -642,36 +704,74 @@ async function handleSubmit() {
 
     const result = await response.json()
     
-    // Загружаем файлы в Google Drive
-    const uploadTasks = []
+    // Собираем все файлы для загрузки
+    const filesToUpload = [];
 
-    // Загрузка файлов истории
+    // Добавляем файлы истории
     if (!formData.value.step4.processingHistory.hasHistory && formData.value.step4.processingHistory.file.length > 0) {
-      uploadTasks.push(...formData.value.step4.processingHistory.file.map((file, index) => 
-        uploadFileToDrive(file, 'PROCESSING_HISTORY', index + 1, result.folderId)
-      ))
+      formData.value.step4.processingHistory.file.forEach((file, index) => {
+        filesToUpload.push({
+          file,
+          type: 'PROCESSING_HISTORY',
+          index: index + 1
+        });
+      });
     }
 
-    // Загрузка файлов статистики
+    // Добавляем файлы статистики
     if (!formData.value.step4.chargebackStatistics.hasStatistics && formData.value.step4.chargebackStatistics.file.length > 0) {
-      uploadTasks.push(...formData.value.step4.chargebackStatistics.file.map((file, index) => 
-        uploadFileToDrive(file, 'CHARGEBACK_STATISTICS', index + 1, result.folderId)
-      ))
+      formData.value.step4.chargebackStatistics.file.forEach((file, index) => {
+        filesToUpload.push({
+          file,
+          type: 'CHARGEBACK_STATISTICS',
+          index: index + 1
+        });
+      });
     }
 
-    // Загрузка документов
+    // Добавляем документы
     for (const [key, doc] of Object.entries(formData.value.step5.documents)) {
       if (!doc.noDocument && doc.files.length > 0) {
-        uploadTasks.push(...doc.files.map((file, index) => 
-          uploadFileToDrive(file, key.toUpperCase(), index + 1, result.folderId)
-        ))
+        doc.files.forEach((file, index) => {
+          filesToUpload.push({
+            file,
+            type: key.toUpperCase(),
+            index: index + 1
+          });
+        });
       }
     }
 
-    // Ждем завершения всех загрузок
-    await Promise.all(uploadTasks)
+    // Инициализируем состояние прогресса
+    uploadProgress.value = {
+      totalFiles: filesToUpload.length,
+      remainingFiles: filesToUpload.length,
+      currentFile: null,
+      messages: []
+    };
 
-    isLoading.value = false
+    addProgressMessage('Начинаем загрузку файлов...');
+
+    // Загружаем файлы последовательно
+    for (const fileInfo of filesToUpload) {
+      uploadProgress.value.currentFile = {
+        name: fileInfo.file.name,
+        progress: 0
+      };
+      addProgressMessage(`Загрузка файла: ${fileInfo.file.name}`);
+
+      try {
+        await uploadFileToDrive(fileInfo.file, fileInfo.type, fileInfo.index, result.folderId);
+        uploadProgress.value.remainingFiles--;
+        addProgressMessage(`✓ Файл ${fileInfo.file.name} успешно загружен`);
+      } catch (error) {
+        addProgressMessage(`❌ Ошибка загрузки файла ${fileInfo.file.name}: ${error.message}`);
+        throw error;
+      }
+    }
+
+    isUploading.value = false;
+
     showNotification('Форма успешно отправлена!')
     
     // Сброс формы и редирект на главную через 2 секунды
@@ -682,6 +782,7 @@ async function handleSubmit() {
   } catch (error) {
     console.error('Ошибка отправки:', error)
     showNotification('Произошла ошибка при отправке формы: ' + error.message, 'error')
+    isUploading.value = false
   }
 }
 
@@ -767,6 +868,9 @@ async function uploadFileToDrive(file, type, index, folderId) {
 
       const result = await response.json()
       console.log(`Чанк ${i + 1}/${chunks.length} успешно загружен`)
+      
+      // Обновляем прогресс текущего файла
+      uploadProgress.value.currentFile.progress = Math.round(((i + 1) / chunks.length) * 100)
 
       // Если это последний чанк, возвращаем результат
       if (i === chunks.length - 1) {
