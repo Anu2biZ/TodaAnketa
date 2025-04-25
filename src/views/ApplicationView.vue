@@ -8,6 +8,11 @@
 
       <!-- Form Container -->
       <div class="glass-card px-8 py-12 mb-8 relative overflow-hidden">
+        <!-- Loading Overlay -->
+        <div v-if="isLoading" class="absolute inset-0 bg-black/50 flex items-center justify-center z-10">
+          <div class="animate-spin rounded-full h-12 w-12 border-4 border-toda-primary border-t-transparent"></div>
+        </div>
+
         <!-- Step Title -->
         <h2 class="font-raleway text-2xl font-bold mb-8 bg-gradient-to-r from-toda-primary via-toda-secondary to-toda-accent inline-block text-transparent bg-clip-text">
           {{ formSteps[currentStep].title }}
@@ -62,9 +67,10 @@
               <button
                 type="submit"
                 v-if="isLastStep"
-                class="px-6 py-2 bg-gradient-to-r from-toda-primary via-toda-secondary to-toda-accent rounded-lg font-semibold hover:opacity-90 transition-opacity"
+                :disabled="isLoading"
+                class="px-6 py-2 bg-gradient-to-r from-toda-primary via-toda-secondary to-toda-accent rounded-lg font-semibold hover:opacity-90 transition-opacity disabled:opacity-50"
               >
-                Submit
+                {{ isLoading ? 'Submitting...' : 'Submit' }}
               </button>
             </div>
           </div>
@@ -106,6 +112,7 @@ import ToastNotification from '../components/ToastNotification.vue'
 const router = useRouter()
 const store = useApplicationFormStore()
 const salesStore = useSalesManagersStore()
+const isLoading = ref(false)
 
 // Реактивные значения из store
 const { currentStep, formData, isLastStep, isFirstStep } = storeToRefs(store)
@@ -144,6 +151,9 @@ async function handleSubmit() {
   }
 
   try {
+    // Включаем индикатор загрузки
+    isLoading.value = true
+
     // Подготавливаем данные для отправки
     const flatData = {
       website: formData.value.step1.website,
@@ -172,9 +182,6 @@ async function handleSubmit() {
     for (const key in flatData) {
       formBody.append(key, flatData[key] || '');
     }
-
-    // Для отладки - запускаем индикатор загрузки
-    const isLoading = ref(true);
     
     // Отправляем данные в Google Sheets через Apps Script
     const response = await fetch('https://script.google.com/macros/s/AKfycbzCaDCFxpkmEkJYKOvF_xrGa4ZB-MCmsSzfPftcu06P2QOB74neo27KVGkzpRcdU0g8/exec', {
@@ -184,8 +191,6 @@ async function handleSubmit() {
       },
       body: formBody
     })
-    
-    isLoading.value = false;
     
     if (response.ok) {
       showNotification('Form submitted successfully!')
@@ -204,6 +209,9 @@ async function handleSubmit() {
   } catch (error) {
     console.error('Submission error:', error)
     showNotification('An error occurred while submitting the form', 'error')
+  } finally {
+    // Выключаем индикатор загрузки в любом случае
+    isLoading.value = false
   }
 }
 </script>
