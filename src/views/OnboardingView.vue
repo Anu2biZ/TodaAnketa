@@ -373,9 +373,11 @@
                 <FileUploader
                   v-if="!formData.step4.processingHistory.hasHistory"
                   v-model="formData.step4.processingHistory.file"
+                  v-model:comment="formData.step4.processingHistory.comment"
                   id="processingHistory"
                   :multiple="true"
                   :show-no-option="false"
+                  :show-comment="true"
                 />
               </div>
 
@@ -393,9 +395,11 @@
                 <FileUploader
                   v-if="!formData.step4.chargebackStatistics.hasStatistics"
                   v-model="formData.step4.chargebackStatistics.file"
+                  v-model:comment="formData.step4.chargebackStatistics.comment"
                   id="chargebackStats"
                   :multiple="true"
                   :show-no-option="false"
+                  :show-comment="true"
                 />
               </div>
             </div>
@@ -674,14 +678,18 @@ async function handleSubmit() {
       shareholder_country_residence: formData.value.step3.shareholderCountryResidence,
       urls: formData.value.step4.urls,
       processing_history: formData.value.step4.processingHistory.hasHistory ? 'NO' : 'UPLOADING',
+      processing_history_comment: formData.value.step4.processingHistory.comment || 'NO',
       chargeback_statistics: formData.value.step4.chargebackStatistics.hasStatistics ? 'NO' : 'UPLOADING',
+      chargeback_statistics_comment: formData.value.step4.chargebackStatistics.comment || 'NO',
       form_type: 'onboarding' // Маркер для Apps Script
     }
 
-    // Добавляем статусы документов
-    for (const [key, doc] of Object.entries(formData.value.step5.documents)) {
-      flatData[key] = doc.noDocument ? 'NO' : 'UPLOADING'
-    }
+      // Добавляем статусы документов и комментарии
+      for (const [key, doc] of Object.entries(formData.value.step5.documents)) {
+        flatData[key] = doc.noDocument ? 'NO' : 'UPLOADING'
+        // Добавляем комментарий к документу
+        flatData[`${key}_comment`] = doc.comment || 'NO'
+      }
 
     // Создаем FormData для отправки
     const formBody = new URLSearchParams()

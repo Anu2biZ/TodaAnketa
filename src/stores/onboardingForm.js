@@ -71,11 +71,13 @@ export const useOnboardingFormStore = defineStore('onboardingForm', () => {
       urls: '2',
       processingHistory: {
         hasHistory: true,
-        file: []
+        file: [],
+        comment: ''
       },
       chargebackStatistics: {
         hasStatistics: true,
-        file: []
+        file: [],
+        comment: ''
       }
     },
     step5: {
@@ -302,8 +304,8 @@ export const useOnboardingFormStore = defineStore('onboardingForm', () => {
       },
       step4: {
         urls: '',
-        processingHistory: { hasHistory: false, file: [] },
-        chargebackStatistics: { hasStatistics: false, file: [] }
+        processingHistory: { hasHistory: false, file: [], comment: '' },
+        chargebackStatistics: { hasStatistics: false, file: [], comment: '' }
       },
       step5: {
         documents: {
