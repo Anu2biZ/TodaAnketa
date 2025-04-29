@@ -184,7 +184,7 @@ async function handleSubmit() {
     }
     
     // Отправляем данные в Google Sheets через Apps Script
-    const response = await fetch('https://script.google.com/macros/s/AKfycbzCaDCFxpkmEkJYKOvF_xrGa4ZB-MCmsSzfPftcu06P2QOB74neo27KVGkzpRcdU0g8/exec', {
+    const response = await fetch(import.meta.env.VITE_SHEET_SCRIPT_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
