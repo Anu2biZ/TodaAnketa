@@ -20,6 +20,11 @@ const router = createRouter({
       path: '/onboarding',
       name: 'onboarding',
       component: OnboardingView
+    },
+    {
+      path: '/dev',
+      name: 'dev',
+      component: () => import('../views/DevPage.vue')
     }
   ]
 })
