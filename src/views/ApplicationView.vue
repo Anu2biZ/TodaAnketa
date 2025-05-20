@@ -25,7 +25,7 @@
               {{ question.label }}
               <span v-if="question.required" class="text-red-500">*</span>
             </label>
-            
+
             <template v-if="question.type === 'input'">
               <input
                 :id="question.id"
@@ -34,7 +34,7 @@
                 class="w-full px-4 py-2 rounded-lg bg-gray-800 border border-gray-700 text-white focus:outline-none focus:border-toda-primary"
               >
             </template>
-            
+
             <template v-else-if="question.type === 'textarea'">
               <textarea
                 :id="question.id"
@@ -102,7 +102,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import {onMounted, ref} from 'vue'
 import { useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import { useApplicationFormStore } from '../stores/applicationForm'
@@ -182,7 +182,7 @@ async function handleSubmit() {
     for (const key in flatData) {
       formBody.append(key, flatData[key] || '');
     }
-    
+
     // Отправляем данные в Google Sheets через Apps Script
     const response = await fetch(import.meta.env.VITE_SHEET_SCRIPT_URL, {
       method: 'POST',
@@ -191,10 +191,10 @@ async function handleSubmit() {
       },
       body: formBody
     })
-    
+
     if (response.ok) {
       showNotification('Form submitted successfully!')
-      
+
       // Сброс формы и редирект на главную через 2 секунды
       setTimeout(() => {
         resetForm()
@@ -214,4 +214,40 @@ async function handleSubmit() {
     isLoading.value = false
   }
 }
+
+async function testScriptAccess() {
+  try {
+    console.log('Testing script access...')
+    const testUrl = import.meta.env.VITE_SHEET_SCRIPT_URL
+
+    // Проверка через XHR
+    const xhr = new XMLHttpRequest()
+    xhr.open('GET', testUrl, true)
+    xhr.onload = () => console.log('XHR GET success:', xhr.status, xhr.responseText.substring(0, 100))
+    xhr.onerror = (e) => console.error('XHR GET error:', e)
+    xhr.send()
+
+    // Проверка через fetch
+    try {
+      const fetchResponse = await fetch(testUrl, { method: 'GET' })
+      console.log('Fetch GET status:', fetchResponse.status)
+      const text = await fetchResponse.text()
+      console.log('Fetch GET text:', text.substring(0, 100))
+    } catch (fetchError) {
+      console.error('Fetch GET error:', fetchError)
+    }
+
+    // Проверка через ping
+    const img = new Image()
+    img.onload = () => console.log('Image ping success')
+    img.onerror = () => console.log('Image ping completed')
+    img.src = `${testUrl}?ping=${Date.now()}`
+  } catch (e) {
+    console.error('Test error:', e)
+  }
+}
+
+onMounted(async() => {
+  await testScriptAccess()
+})
 </script>
