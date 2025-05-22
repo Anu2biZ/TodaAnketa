@@ -193,11 +193,12 @@ async function handleSubmit() {
     // })
 
     const response = await fetch(import.meta.env.VITE_SHEET_SCRIPT_URL, {
-      method: 'POST',
+      method: "POST",
+      redirect: "follow", // ВАЖНО
       headers: {
-        'Content-Type': 'application/json'
+        "Content-Type": "text/plain;charset=utf-8", // ВАЖНО
       },
-      body: JSON.stringify(flatData)
+      body: JSON.stringify(flatData),
     });
 
     if (response.ok) {
@@ -230,14 +231,14 @@ async function testScriptAccess() {
 
     // Проверка через XHR
     const xhr = new XMLHttpRequest()
-    xhr.open('GET', testUrl, true)
+    xhr.open('POST', testUrl, true)
     xhr.onload = () => console.log('XHR GET success:', xhr.status, xhr.responseText.substring(0, 100))
     xhr.onerror = (e) => console.error('XHR GET error:', e)
     xhr.send()
 
     // Проверка через fetch
     try {
-      const fetchResponse = await fetch(testUrl, { method: 'GET' })
+      const fetchResponse = await fetch(testUrl, { method: 'POST' })
       console.log('Fetch GET status:', fetchResponse.status)
       const text = await fetchResponse.text()
       console.log('Fetch GET text:', text.substring(0, 100))
