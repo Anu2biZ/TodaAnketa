@@ -184,13 +184,21 @@ async function handleSubmit() {
     }
 
     // Отправляем данные в Google Sheets через Apps Script
+    // const response = await fetch(import.meta.env.VITE_SHEET_SCRIPT_URL, {
+    //   method: 'POST',
+    //   headers: {
+    //     'Content-Type': 'application/x-www-form-urlencoded',
+    //   },
+    //   body: formBody
+    // })
+
     const response = await fetch(import.meta.env.VITE_SHEET_SCRIPT_URL, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
+        'Content-Type': 'application/json'
       },
-      body: formBody
-    })
+      body: JSON.stringify(flatData)
+    });
 
     if (response.ok) {
       showNotification('Form submitted successfully!')
