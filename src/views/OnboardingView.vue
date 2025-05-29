@@ -2,47 +2,82 @@
   <div class="min-h-screen relative overflow-hidden">
     <!-- Upload Progress Overlay -->
     <div v-if="isUploading" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
-      <div class="bg-gray-900 p-8 rounded-lg shadow-xl max-w-lg w-full mx-4">
-        <h3 class="text-xl font-semibold mb-4 text-white">File uploading</h3>
+      <div class="bg-gray-900 p-8 rounded-lg shadow-xl max-w-lg w-full mx-4 relative overflow-hidden">
+        <!-- Animated Background -->
+        <div class="absolute inset-0 bg-gradient-to-r from-toda-primary/10 via-toda-secondary/10 to-toda-accent/10 animate-gradient"></div>
 
-        <!-- Overall Progress -->
-        <div class="mb-6">
-          <div class="flex justify-between mb-2">
-            <span class="text-gray-300">Total progress</span>
-            <span class="text-gray-300">{{ uploadProgress.totalFiles - uploadProgress.remainingFiles }}/{{ uploadProgress.totalFiles }}</span>
+        <div class="relative">
+          <!-- Header with Spinner -->
+          <div class="flex items-center gap-3 mb-6">
+            <div class="animate-spin w-6 h-6">
+              <svg class="w-full h-full text-toda-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+            </div>
+            <h3 class="text-xl font-semibold text-white">File uploading</h3>
           </div>
-          <div class="w-full bg-gray-700 rounded-full h-2.5">
-            <div class="bg-toda-primary h-2.5 rounded-full"
-                 :style="{ width: `${((uploadProgress.totalFiles - uploadProgress.remainingFiles) / uploadProgress.totalFiles) * 100}%` }">
+
+          <!-- Overall Progress -->
+          <div class="mb-6">
+            <div class="flex justify-between mb-2">
+              <span class="text-gray-300">Total progress</span>
+              <span class="text-gray-300">{{ uploadProgress.totalFiles - uploadProgress.remainingFiles }}/{{ uploadProgress.totalFiles }}</span>
+            </div>
+            <div class="w-full bg-gray-700 rounded-full h-3 overflow-hidden">
+              <div class="bg-toda-primary h-full rounded-full transition-all duration-300 relative"
+                   :style="{ width: `${((uploadProgress.totalFiles - uploadProgress.remainingFiles) / uploadProgress.totalFiles) * 100}%` }">
+                <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-shine"></div>
+              </div>
             </div>
           </div>
-        </div>
 
-        <!-- Current File Progress -->
-        <div v-if="uploadProgress.currentFile" class="mb-6">
-          <div class="flex justify-between mb-2">
-            <span class="text-gray-300">{{ uploadProgress.currentFile.name }}</span>
-            <span class="text-gray-300">{{ uploadProgress.currentFile.progress }}%</span>
-          </div>
-          <div class="w-full bg-gray-700 rounded-full h-2.5">
-            <div class="bg-toda-secondary h-2.5 rounded-full"
-                 :style="{ width: `${uploadProgress.currentFile.progress}%` }">
+          <!-- Current File Progress -->
+          <div v-if="uploadProgress.currentFile" class="mb-6">
+            <div class="flex justify-between mb-2">
+              <span class="text-gray-300">{{ uploadProgress.currentFile.name }}</span>
+              <span class="text-gray-300">{{ uploadProgress.currentFile.progress }}%</span>
+            </div>
+            <div class="w-full bg-gray-700 rounded-full h-3 overflow-hidden">
+              <div class="bg-toda-secondary h-full rounded-full transition-all duration-300 relative"
+                   :style="{ width: `${uploadProgress.currentFile.progress}%` }">
+                <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-shine"></div>
+              </div>
             </div>
           </div>
-        </div>
 
-        <!-- Status Messages -->
-        <div class="text-sm text-gray-400 space-y-1">
-          <div v-for="(message, index) in uploadProgress.messages" :key="index">
-            {{ message }}
+          <!-- Status Messages -->
+          <div class="text-sm text-gray-400 space-y-2 mt-6">
+            <div v-for="(message, index) in uploadProgress.messages" 
+                 :key="index"
+                 class="flex items-center gap-2 p-2 rounded bg-gray-800/50 transition-all duration-300"
+                 :class="{'animate-message-appear': index === 0}">
+              <span class="flex-shrink-0" v-if="message.includes('✓')">
+                <svg class="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                </svg>
+              </span>
+              <span class="flex-shrink-0" v-else-if="message.includes('❌')">
+                <svg class="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+              </span>
+              <span class="flex-shrink-0" v-else>
+                <svg class="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                </svg>
+              </span>
+              {{ message }}
+            </div>
           </div>
-        </div>
 
-        <p class="mt-4 text-sm text-gray-400">
-          Do not close the page until it is uploaded
-        </p>
+          <p class="mt-6 text-sm text-gray-400 bg-red-500/10 p-3 rounded-lg border border-red-500/20">
+            Do not close the page until it is uploaded
+          </p>
+        </div>
       </div>
     </div>
+
     <main class="relative mt-10 max-w-[900px] mx-auto px-4 py-8">
       <!-- Logo -->
       <div class="text-center mb-12 flex justify-center">
@@ -684,12 +719,12 @@ async function handleSubmit() {
       form_type: 'onboarding' // Маркер для Apps Script
     }
 
-      // Добавляем статусы документов и комментарии
-      for (const [key, doc] of Object.entries(formData.value.step5.documents)) {
-        flatData[key] = doc.noDocument ? 'NO' : 'UPLOADING'
-        // Добавляем комментарий к документу
-        flatData[`${key}_comment`] = doc.comment || 'NO'
-      }
+    // Добавляем статусы документов и комментарии
+    for (const [key, doc] of Object.entries(formData.value.step5.documents)) {
+      flatData[key] = doc.noDocument ? 'NO' : 'UPLOADING'
+      // Добавляем комментарий к документу
+      flatData[`${key}_comment`] = doc.comment || 'NO'
+    }
 
     // Создаем FormData для отправки
     const formBody = new URLSearchParams()
@@ -891,3 +926,50 @@ async function uploadFileToDrive(file, type, index, folderId) {
   }
 }
 </script>
+
+<style>
+.animate-gradient {
+  background-size: 200% 200%;
+  animation: gradient 8s linear infinite;
+}
+
+.animate-shine {
+  animation: shine 2s linear infinite;
+}
+
+.animate-message-appear {
+  animation: messageAppear 0.3s ease-out;
+}
+
+@keyframes gradient {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+@keyframes shine {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes messageAppear {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+</style>
