@@ -3,16 +3,16 @@
     <!-- Upload Progress Overlay -->
     <div v-if="isUploading" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
       <div class="bg-gray-900 p-8 rounded-lg shadow-xl max-w-lg w-full mx-4">
-        <h3 class="text-xl font-semibold mb-4 text-white">Загрузка файлов</h3>
-        
+        <h3 class="text-xl font-semibold mb-4 text-white">File uploading</h3>
+
         <!-- Overall Progress -->
         <div class="mb-6">
           <div class="flex justify-between mb-2">
-            <span class="text-gray-300">Общий прогресс</span>
+            <span class="text-gray-300">Total progress</span>
             <span class="text-gray-300">{{ uploadProgress.totalFiles - uploadProgress.remainingFiles }}/{{ uploadProgress.totalFiles }}</span>
           </div>
           <div class="w-full bg-gray-700 rounded-full h-2.5">
-            <div class="bg-toda-primary h-2.5 rounded-full" 
+            <div class="bg-toda-primary h-2.5 rounded-full"
                  :style="{ width: `${((uploadProgress.totalFiles - uploadProgress.remainingFiles) / uploadProgress.totalFiles) * 100}%` }">
             </div>
           </div>
@@ -25,7 +25,7 @@
             <span class="text-gray-300">{{ uploadProgress.currentFile.progress }}%</span>
           </div>
           <div class="w-full bg-gray-700 rounded-full h-2.5">
-            <div class="bg-toda-secondary h-2.5 rounded-full" 
+            <div class="bg-toda-secondary h-2.5 rounded-full"
                  :style="{ width: `${uploadProgress.currentFile.progress}%` }">
             </div>
           </div>
@@ -39,7 +39,7 @@
         </div>
 
         <p class="mt-4 text-sm text-gray-400">
-          Пожалуйста, не закрывайте страницу до завершения загрузки
+          Do not close the page until it is uploaded
         </p>
       </div>
     </div>
@@ -540,8 +540,8 @@ const isValidDate = computed(() => {
 
   const [day, month, year] = date.split('.')
   const dateObj = new Date(year, month - 1, day)
-  return dateObj.getDate() === parseInt(day) && 
-         (dateObj.getMonth() + 1) === parseInt(month) && 
+  return dateObj.getDate() === parseInt(day) &&
+         (dateObj.getMonth() + 1) === parseInt(month) &&
          dateObj.getFullYear() === parseInt(year)
 })
 
@@ -551,7 +551,7 @@ function handleNext() {
     nextStep()
   } else {
     let errorMessage = 'Please fill in all required fields'
-    
+
     // Specific messages for each step
     if (currentStep.value === 0) {
       if (!formData.value.step1.projectName || !formData.value.step1.telegramGroup) {
@@ -591,7 +591,7 @@ function handleNext() {
     } else if (currentStep.value === 4) {
       errorMessage = 'Please upload all required documents or mark NO'
     }
-    
+
     showNotification(errorMessage, 'error')
   }
 }
@@ -627,13 +627,13 @@ function getDocumentTitle(key) {
 // Handle form submission
 async function handleSubmit() {
   if (!validateForm()) {
-    showNotification('Пожалуйста, заполните все обязательные поля', 'error')
+    showNotification('Please fill in all fields', 'error')
     return
   }
 
   // Показываем оверлей загрузки
   isUploading.value = true;
-  
+
   try {
     // Подготавливаем данные департаментов
     const departmentData = {}
@@ -664,8 +664,8 @@ async function handleSubmit() {
       registration_number: formData.value.step2.registrationNumber,
       license_jurisdiction: formData.value.step2.licenseJurisdiction || 'NO',
       license_number: formData.value.step2.licenseNumber || 'NO',
-      project_nature: formData.value.step2.projectNature === 'Others' 
-        ? formData.value.step2.projectNatureOther 
+      project_nature: formData.value.step2.projectNature === 'Others'
+        ? formData.value.step2.projectNatureOther
         : formData.value.step2.projectNature,
       industries: formData.value.step2.industries || 'NO',
       not_belongs_to_psp: formData.value.step2.notBelongToCategory,
@@ -711,7 +711,7 @@ async function handleSubmit() {
     }
 
     const result = await response.json()
-    
+
     // Собираем все файлы для загрузки
     const filesToUpload = [];
 
@@ -758,7 +758,7 @@ async function handleSubmit() {
       messages: []
     };
 
-    addProgressMessage('Начинаем загрузку файлов...');
+    addProgressMessage('Starting uploading...');
 
     // Загружаем файлы последовательно
     for (const fileInfo of filesToUpload) {
@@ -766,30 +766,30 @@ async function handleSubmit() {
         name: fileInfo.file.name,
         progress: 0
       };
-      addProgressMessage(`Загрузка файла: ${fileInfo.file.name}`);
+      addProgressMessage(`Uploading file: ${fileInfo.file.name}`);
 
       try {
         await uploadFileToDrive(fileInfo.file, fileInfo.type, fileInfo.index, result.folderId);
         uploadProgress.value.remainingFiles--;
-        addProgressMessage(`✓ Файл ${fileInfo.file.name} успешно загружен`);
+        addProgressMessage(`✓ File ${fileInfo.file.name} successfully uploaded`);
       } catch (error) {
-        addProgressMessage(`❌ Ошибка загрузки файла ${fileInfo.file.name}: ${error.message}`);
+        addProgressMessage(`❌ Error on uploading file ${fileInfo.file.name}: ${error.message}`);
         throw error;
       }
     }
 
     isUploading.value = false;
 
-    showNotification('Форма успешно отправлена!')
-    
+    showNotification('Form has beed sent successfully')
+
     // Сброс формы и редирект на главную через 2 секунды
     setTimeout(() => {
       resetForm()
       router.push('/')
     }, 2000)
   } catch (error) {
-    console.error('Ошибка отправки:', error)
-    showNotification('Произошла ошибка при отправке формы: ' + error.message, 'error')
+    console.error('Sent error:', error)
+    showNotification('Error on sending form: ' + error.message, 'error')
     isUploading.value = false
   }
 }
@@ -798,7 +798,7 @@ async function handleSubmit() {
 function* getFileChunks(file, chunkSize = 4 * 1024 * 1024) { // 2MB chunks
   const fileSize = file.size
   let offset = 0
-  
+
   while (offset < fileSize) {
     const chunk = file.slice(offset, offset + chunkSize)
     offset += chunkSize
@@ -818,7 +818,7 @@ async function uploadFileToDrive(file, type, index, folderId) {
     })
 
     if (!file.file || !(file.file instanceof Blob)) {
-      throw new Error('Некорректный формат файла')
+      throw new Error('Not correct file format')
     }
 
     // Получаем чанки файла
@@ -828,7 +828,7 @@ async function uploadFileToDrive(file, type, index, folderId) {
     // Загружаем чанки последовательно
     for (let i = 0; i < chunks.length; i++) {
       const chunk = chunks[i]
-      
+
       // Конвертируем чанк в base64
       const base64Chunk = await new Promise((resolve, reject) => {
         const reader = new FileReader()
@@ -871,12 +871,12 @@ async function uploadFileToDrive(file, type, index, folderId) {
       })
 
       if (!response.ok) {
-        throw new Error(`Ошибка загрузки чанка ${i + 1} файла ${file.name}`)
+        throw new Error(`Error on uploading chunk ${i + 1} of file ${file.name}`)
       }
 
       const result = await response.json()
       console.log(`Чанк ${i + 1}/${chunks.length} успешно загружен`)
-      
+
       // Обновляем прогресс текущего файла
       uploadProgress.value.currentFile.progress = Math.round(((i + 1) / chunks.length) * 100)
 

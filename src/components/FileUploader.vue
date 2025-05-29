@@ -42,7 +42,7 @@
         <span class="text-gray-300">Drag files here or</span>
         <span class="text-toda-primary">click to select</span>
         <span v-if="maxFiles" class="text-sm text-gray-400 mt-2">
-          Максимум файлов: {{ maxFiles }}
+          Maximum of files: {{ maxFiles }}
         </span>
       </label>
     </div>
@@ -74,7 +74,7 @@
     <!-- Поле для комментария -->
     <div v-if="showComment" class="space-y-2">
       <label :for="'comment-' + id" class="block text-gray-300 text-sm">
-        Комментарий
+        Comment
       </label>
       <textarea
         :id="'comment-' + id"
@@ -162,7 +162,7 @@ function addFiles(files) {
     // Можно добавить toast уведомление здесь
     return
   }
-  
+
   const newFiles = [...props.modelValue]
   files.forEach(file => {
     // Сохраняем оригинальный файл для последующей загрузки
@@ -174,7 +174,7 @@ function addFiles(files) {
       url: URL.createObjectURL(file)
     })
   })
-  
+
   emit('update:modelValue', newFiles)
 }
 
