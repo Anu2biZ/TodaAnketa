@@ -48,7 +48,7 @@
 
           <!-- Status Messages -->
           <div class="text-sm text-gray-400 space-y-2 mt-6">
-            <div v-for="(message, index) in uploadProgress.messages" 
+            <div v-for="(message, index) in uploadProgress.messages"
                  :key="index"
                  class="flex items-center gap-2 p-2 rounded bg-gray-800/50 transition-all duration-300"
                  :class="{'animate-message-appear': index === 0}">
@@ -74,6 +74,39 @@
           <p class="mt-6 text-sm text-gray-400 bg-red-500/10 p-3 rounded-lg border border-red-500/20">
             Do not close the page until it is uploaded
           </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Success Modal -->
+    <div v-if="showSuccessModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+      <div class="bg-gray-900 p-8 rounded-lg shadow-xl max-w-md w-full mx-4 relative overflow-hidden">
+        <!-- Animated Background -->
+        <div class="absolute inset-0 bg-gradient-to-r from-toda-primary/10 via-toda-secondary/10 to-toda-accent/10 animate-gradient"></div>
+
+        <div class="relative text-center">
+          <!-- Success Icon -->
+          <div class="w-16 h-16 mx-auto mb-6 bg-gradient-to-r from-toda-primary to-toda-accent rounded-full flex items-center justify-center">
+            <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+            </svg>
+          </div>
+
+          <!-- Title -->
+          <h3 class="text-2xl font-bold text-white mb-4">Thank You!</h3>
+
+          <!-- Message -->
+          <p class="text-gray-300 mb-8 text-lg">
+            Your data has been successfully submitted. We will contact you soon.
+          </p>
+
+          <!-- Close Button -->
+          <button
+              @click="closeSuccessModal"
+              class="px-8 py-3 bg-gradient-to-r from-toda-primary via-toda-secondary to-toda-accent rounded-lg font-semibold text-white hover:opacity-90 transition-opacity"
+          >
+            Close
+          </button>
         </div>
       </div>
     </div>
@@ -554,6 +587,7 @@ const { nextStep, previousStep, validateStep, validateForm, resetForm, formSteps
 const showToast = ref(false)
 const toastMessage = ref('')
 const toastType = ref('success')
+const showSuccessModal = ref(false)
 
 // Show toast helper
 function showNotification(message, type = 'success') {
@@ -563,6 +597,12 @@ function showNotification(message, type = 'success') {
   setTimeout(() => {
     showToast.value = false
   }, 3000)
+}
+
+function closeSuccessModal() {
+  showSuccessModal.value = false
+  resetForm()
+  router.push('/')
 }
 
 // Date validation
@@ -814,14 +854,8 @@ async function handleSubmit() {
     }
 
     isUploading.value = false;
+    showSuccessModal.value = true;
 
-    showNotification('Form has beed sent successfully')
-
-    // Сброс формы и редирект на главную через 2 секунды
-    setTimeout(() => {
-      resetForm()
-      router.push('/')
-    }, 2000)
   } catch (error) {
     console.error('Sent error:', error)
     showNotification('Error on sending form: ' + error.message, 'error')
