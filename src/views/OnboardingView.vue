@@ -474,19 +474,44 @@
           </template>
 
           <!-- Step 5: Documents -->
+          <!-- Step 5: Documents -->
           <template v-if="currentStep === 4">
-            <div class="space-y-8">
-              <div v-for="(doc, key) in formData.step5.documents" :key="key" class="space-y-4">
-                <h3 class="text-lg font-medium text-gray-300">{{ getDocumentTitle(key) }}</h3>
-                <FileUploader
-                  v-model="doc.files"
-                  :id="key"
-                  :show-no-option="true"
-                  v-model:no-document="doc.noDocument"
-                  :show-comment="true"
-                  v-model:comment="doc.comment"
-                  :multiple="true"
-                />
+            <div class="space-y-6">
+              <div v-for="(doc, key) in formData.step5.documents" :key="key"
+                   class="relative p-6 rounded-xl bg-gradient-to-br from-gray-800/50 to-gray-900/50 border border-gray-700/50 backdrop-blur-sm hover:border-toda-primary/30 transition-all duration-300">
+
+                <!-- Decorative corner accent -->
+
+                <!-- Document header -->
+                <div class="relative mb-4">
+                  <div class="flex items-center gap-3 mb-2">
+                    <!-- Document icon -->
+                    <div class="flex-shrink-0 w-8 h-8 bg-gradient-to-br from-toda-primary to-toda-secondary rounded-lg flex items-center justify-center">
+                      <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                      </svg>
+                    </div>
+
+                    <!-- Document title -->
+                    <h3 class="text-lg font-semibold text-white">{{ getDocumentTitle(key) }}</h3>
+                  </div>
+
+                  <!-- Subtle divider -->
+                  <div class="w-full h-px bg-gradient-to-r from-transparent via-gray-600 to-transparent"></div>
+                </div>
+
+                <!-- File uploader -->
+                <div class="relative">
+                  <FileUploader
+                      v-model="doc.files"
+                      :id="key"
+                      :show-no-option="true"
+                      v-model:no-document="doc.noDocument"
+                      :show-comment="true"
+                      v-model:comment="doc.comment"
+                      :multiple="true"
+                  />
+                </div>
               </div>
             </div>
           </template>
