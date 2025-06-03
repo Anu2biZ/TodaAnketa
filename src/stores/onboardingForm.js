@@ -5,15 +5,15 @@ export const useOnboardingFormStore = defineStore('onboardingForm', () => {
   const currentStep = ref(0)
   const formData = ref({
     step1: {
-      projectName: 'test name',
-      telegramGroup: 'test tg',
+      projectName: '',
+      telegramGroup: '',
       departments: {
         compliance: {
           enabled: true,
-          fullName: 'test name',
-          position: 'test position',
-          telegram: 'test tg',
-          email: 'testemail@ya.ru'
+          fullName: '',
+          position: '',
+          telegram: '',
+          email: ''
         },
         legal: {
           enabled: false,
@@ -47,35 +47,35 @@ export const useOnboardingFormStore = defineStore('onboardingForm', () => {
       comments: ''
     },
     step2: {
-      companyName: 'company name',
-      legalAddress: 'legal address',
-      registrationDate: '12.12.2024',
-      registrationNumber: 'reg no',
-      licenseJurisdiction: 'licenseJurisdiction',
-      licenseNumber: 'licenseNumber',
-      projectNature: 'PSP',
+      companyName: '',
+      legalAddress: '',
+      registrationDate: '',
+      registrationNumber: '',
+      licenseJurisdiction: '',
+      licenseNumber: '',
+      projectNature: '',
       projectNatureOther: '',
-      industries: 'hz',
+      industries: '',
       notBelongToCategory: false,
-      website: 'https://vk.com'
+      website: ''
     },
     step3: {
-      uboCountryCitizenship: '1',
-      uboCountryResidence: '2',
-      directorCountryCitizenship: '3',
-      directorCountryResidence: '4',
-      shareholderCountryCitizenship: '5',
-      shareholderCountryResidence: '6'
+      uboCountryCitizenship: '',
+      uboCountryResidence: '',
+      directorCountryCitizenship: '',
+      directorCountryResidence: '',
+      shareholderCountryCitizenship: '',
+      shareholderCountryResidence: ''
     },
     step4: {
-      urls: '2',
+      urls: '',
       processingHistory: {
-        hasHistory: true,
+        hasHistory: false,
         file: [],
         comment: ''
       },
       chargebackStatistics: {
-        hasStatistics: true,
+        hasStatistics: false,
         file: [],
         comment: ''
       }
@@ -147,7 +147,7 @@ export const useOnboardingFormStore = defineStore('onboardingForm', () => {
       validate: (data) => {
         const step = data.step1
         if (!step.projectName || !step.telegramGroup) return false
-        
+
         // Проверяем, что для каждого включенного департамента заполнены все поля
         for (const dept of Object.values(step.departments)) {
           if (dept.enabled) {
@@ -164,24 +164,24 @@ export const useOnboardingFormStore = defineStore('onboardingForm', () => {
       title: 'Company Information',
       validate: (data) => {
         const step = data.step2
-        
+
         // Проверяем обязательные поля
-        if (!step.companyName || !step.legalAddress || !step.registrationDate || 
+        if (!step.companyName || !step.legalAddress || !step.registrationDate ||
             !step.registrationNumber || !step.projectNature) {
           return false
         }
-        
+
         // Проверка даты регистрации
         const dateRegex = /^\d{2}\.\d{2}\.\d{4}$/
         if (!dateRegex.test(step.registrationDate)) {
           return false
         }
-        
+
         // Проверка корректности даты
         const [day, month, year] = step.registrationDate.split('.')
         const date = new Date(year, month - 1, day)
-        if (date.getDate() !== parseInt(day) || 
-            (date.getMonth() + 1) !== parseInt(month) || 
+        if (date.getDate() !== parseInt(day) ||
+            (date.getMonth() + 1) !== parseInt(month) ||
             date.getFullYear() !== parseInt(year)) {
           return false
         }
@@ -202,9 +202,9 @@ export const useOnboardingFormStore = defineStore('onboardingForm', () => {
         }
 
         // Проверяем, что все обязательные поля заполнены
-        return step.companyName.trim() !== '' && 
-               step.legalAddress.trim() !== '' && 
-               step.registrationNumber.trim() !== '' && 
+        return step.companyName.trim() !== '' &&
+               step.legalAddress.trim() !== '' &&
+               step.registrationNumber.trim() !== '' &&
                step.projectNature !== ''
       }
     },
@@ -222,11 +222,11 @@ export const useOnboardingFormStore = defineStore('onboardingForm', () => {
       validate: (data) => {
         const step = data.step4
         if (!step.urls) return false
-        
+
         // Проверяем, что либо выбрано NO, либо есть хотя бы один файл
         if (!step.processingHistory.hasHistory && !step.processingHistory.file?.length) return false
         if (!step.chargebackStatistics.hasStatistics && !step.chargebackStatistics.file?.length) return false
-        
+
         return true
       }
     },

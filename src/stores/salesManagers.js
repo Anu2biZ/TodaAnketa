@@ -2,8 +2,21 @@ import { defineStore } from 'pinia'
 
 // Предопределенные менеджеры с их уникальными ID
 const SALES_MANAGERS = {
-  'abc123': 'Ivan Fox',
-  'def456': 'Kate Super',
+  '1': 'Артем',
+  '2': 'Темур',
+  '3': 'Алекс',
+  '4': 'Александр',
+  '5': 'Оля',
+  '6': 'Владислав',
+  '7': '',
+  '8': '',
+  '9': '',
+  '10': '',
+  '11': '',
+  '12': '',
+  '13': '',
+  '14': '',
+  '15': '',
 }
 
 export const useSalesManagersStore = defineStore('salesManagers', {
