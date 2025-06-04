@@ -79,14 +79,15 @@
     </div>
 
     <!-- Success Modal -->
+    <!-- Success Modal -->
     <div v-if="showSuccessModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
       <div class="bg-gray-900 p-8 rounded-lg shadow-xl max-w-md w-full mx-4 relative overflow-hidden">
         <!-- Animated Background -->
-        <div class="absolute inset-0 bg-gradient-to-r from-toda-primary/10 via-toda-secondary/10 to-toda-accent/10 animate-gradient"></div>
+        <div class="absolute inset-0 bg-gradient-to-r from-green-500/10 via-emerald-500/10 to-teal-500/10 animate-gradient"></div>
 
         <div class="relative text-center">
           <!-- Success Icon -->
-          <div class="w-16 h-16 mx-auto mb-6 bg-gradient-to-r from-toda-primary to-toda-accent rounded-full flex items-center justify-center">
+          <div class="w-16 h-16 mx-auto mb-6 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full flex items-center justify-center shadow-lg">
             <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
             </svg>
@@ -103,14 +104,13 @@
           <!-- Close Button -->
           <button
               @click="closeSuccessModal"
-              class="px-8 py-3 bg-gradient-to-r from-toda-primary via-toda-secondary to-toda-accent rounded-lg font-semibold text-white hover:opacity-90 transition-opacity"
+              class="px-8 py-3 bg-gradient-to-r from-green-500 via-emerald-500 to-green-600 rounded-lg font-semibold text-white hover:from-green-600 hover:via-emerald-600 hover:to-green-700 transition-all duration-300 shadow-lg hover:shadow-green-500/25"
           >
             Close
           </button>
         </div>
       </div>
     </div>
-
     <main class="relative mt-10 max-w-[900px] mx-auto px-4 py-8">
       <!-- Logo -->
       <div class="text-center mb-12 flex justify-center">
