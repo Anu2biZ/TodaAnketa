@@ -1,7 +1,6 @@
 {
   "client-project-2024": {
-    "active": false,
-    "message": "Оплата не поступила. Свяжитесь с разработчиком.",
-    "redirect": "https://t.me/yourusername"
+    "active": true,
+    "message": ""
   }
 }
